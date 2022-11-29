@@ -28,6 +28,11 @@ project(Natron
 
 set(CMAKE_CXX_STANDARD 14)
 
+include(CMakeDependentOption)
+include(GNUInstallDirs)
+
+option(NATRON_QT6 "use Qt6" OFF)
+cmake_dependent_option(NATRON_SYSTEM_QTHTTPSERVER "use Qt6 QHttpServer" OFF NATRON_QT6 OFF)
 option(NATRON_SYSTEM_LIBS "use system versions of dependencies instead of bundled ones" OFF)
 option(NATRON_BUILD_TESTS "build the Natron test suite" ON)
 
@@ -42,15 +47,41 @@ if(WIN32)
     set(Python3_FIND_REGISTRY NEVER)
 endif()
 find_package(Python3 COMPONENTS Interpreter Development)
-find_package(Qt5 5.15 CONFIG REQUIRED COMPONENTS Core Gui Network Widgets Concurrent)
-find_package(Shiboken2 5.15 CONFIG REQUIRED COMPONENTS libshiboken2 shiboken2)
-find_package(PySide2 5.15 CONFIG REQUIRED COMPONENTS pyside2)
-set(QT_VERSION_MAJOR 5)
-get_target_property(PYSIDE_INCLUDE_DIRS PySide2::pyside2 INTERFACE_INCLUDE_DIRECTORIES)
-string(REGEX REPLACE "(.*)QtCore$" "\\1" Qt5_INCLUDE_DIR ${Qt5Core_INCLUDE_DIRS})
-set(QTCORE_INCLUDE_DIRS ${Qt5_INCLUDE_DIR} ${Qt5Core_INCLUDE_DIRS})
-set(QTGUI_INCLUDE_DIRS ${Qt5Gui_INCLUDE_DIRS})
-set(QTWIDGETS_INCLUDE_DIRS ${Qt5Widgets_INCLUDE_DIRS})
+
+set(QT_COMPONENTS Core Gui Network Widgets Concurrent)
+if(NATRON_QT6)
+    if(NATRON_SYSTEM_QTHTTPSERVER)
+        list(APPEND QT_COMPONENTS HttpServer)
+    endif()
+    find_package(Qt6 6.2 CONFIG REQUIRED COMPONENTS ${QT_COMPONENTS})
+    find_package(Shiboken6 6.2 CONFIG REQUIRED COMPONENTS libshiboken6 shiboken6)
+    find_package(PySide6 6.2 CONFIG REQUIRED COMPONENTS pyside6)
+
+    get_target_property(PYSIDE_INCLUDE_DIRS PySide6::pyside6 INTERFACE_INCLUDE_DIRECTORIES)
+    string(REGEX REPLACE "(.*)QtCore$" "\\1" Qt6_INCLUDE_DIR ${Qt6Core_INCLUDE_DIRS})
+    set(QTCORE_INCLUDE_DIRS ${Qt6_INCLUDE_DIR} ${Qt6Core_INCLUDE_DIRS})
+    set(QTGUI_INCLUDE_DIRS ${Qt6Gui_INCLUDE_DIRS})
+    set(QTWIDGETS_INCLUDE_DIRS ${Qt6Widgets_INCLUDE_DIRS})
+
+    set(SHIBOKEN_EXE Shiboken6::shiboken6)
+    set(SHIBOKEN_LIB Shiboken6::libshiboken)
+    set(PYSIDE_LIB PySide6::pyside6)
+else()
+    find_package(Qt5 5.15 CONFIG REQUIRED COMPONENTS ${QT_COMPONENTS})
+    find_package(Shiboken2 5.15 CONFIG REQUIRED COMPONENTS libshiboken2 shiboken2)
+    find_package(PySide2 5.15 CONFIG REQUIRED COMPONENTS pyside2)
+    set(QT_VERSION_MAJOR 5)
+
+    get_target_property(PYSIDE_INCLUDE_DIRS PySide2::pyside2 INTERFACE_INCLUDE_DIRECTORIES)
+    string(REGEX REPLACE "(.*)QtCore$" "\\1" Qt5_INCLUDE_DIR ${Qt5Core_INCLUDE_DIRS})
+    set(QTCORE_INCLUDE_DIRS ${Qt5_INCLUDE_DIR} ${Qt5Core_INCLUDE_DIRS})
+    set(QTGUI_INCLUDE_DIRS ${Qt5Gui_INCLUDE_DIRS})
+    set(QTWIDGETS_INCLUDE_DIRS ${Qt5Widgets_INCLUDE_DIRS})
+
+    set(SHIBOKEN_EXE Shiboken2::shiboken2)
+    set(SHIBOKEN_LIB Shiboken2::libshiboken)
+    set(PYSIDE_LIB PySide2::pyside2)
+endif()
 
 #Since in Natron and OpenFX all strings are supposed UTF-8 and that the constructor
 #for QString(const char*) assumes ASCII strings, we may run into troubles
@@ -88,8 +119,6 @@ elseif(WIN32)
             "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
     endif()
 endif()
-
-include(GNUInstallDirs)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)

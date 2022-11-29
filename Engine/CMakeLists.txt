@@ -28,8 +28,14 @@ set(PYENGINE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Qt${QT_VERSION_MAJOR})
 set(PYENGINE_INCLUDE_DIRS ${PYSIDE_INCLUDE_DIRS} ${PYSIDE_INCLUDE_DIRS}/QtCore)
 list(APPEND PYENGINE_INCLUDE_DIRS ${QTCORE_INCLUDE_DIRS} ${Python3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 list(TRANSFORM PYENGINE_INCLUDE_DIRS PREPEND "-I" OUTPUT_VARIABLE PYENGINE_INCS)
-set(PYENGINE_HEADER PySide2_Engine_Python.h)
-set(POST_SHIBOKEN ../tools/utils/runPostShiboken2.sh)
+
+if(NATRON_QT6)
+    set(PYENGINE_HEADER PySide6_Engine_Python.h)
+    set(POST_SHIBOKEN ../tools/utils/runPostShiboken6.sh)
+else()
+    set(PYENGINE_HEADER PySide2_Engine_Python.h)
+    set(POST_SHIBOKEN ../tools/utils/runPostShiboken2.sh)
+endif()
 
 set(shiboken_args
     "--enable-parent-ctor-heuristic" "--use-isnull-as-nb_nonzero"
@@ -46,7 +52,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ../tools/utils/sourceList.py types
     OUTPUT_VARIABLE PyEngine_SOURCES)
 set_property(SOURCE ${PyEngine_SOURCES} PROPERTY SKIP_AUTOGEN ON)
 add_custom_command(OUTPUT ${PyEngine_SOURCES}
-    COMMAND Shiboken2::shiboken2 ${shiboken_args}
+    COMMAND ${SHIBOKEN_EXE} ${shiboken_args}
     COMMAND bash ${POST_SHIBOKEN} ${PYENGINE_OUT}/NatronEngine natronengine
     DEPENDS ${PYENGINE_HEADER} ${NatronEngine_HEADERS} ${POST_SHIBOKEN} typesystem_engine.xml
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -78,11 +84,11 @@ target_link_libraries(NatronEngine
         Boost::serialization
         PkgConfig::Cairo
     PRIVATE
-        Shiboken2::libshiboken
-        PySide2::pyside2
-        Qt5::Core
-        Qt5::Concurrent
-        Qt5::Network
+        ${SHIBOKEN_LIB}
+        ${PYSIDE_LIB}
+        Qt::Core
+        Qt::Concurrent
+        Qt::Network
         Python3::Module
         ${XDG_LIBS}
         ceres

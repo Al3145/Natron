@@ -28,8 +28,22 @@ list(APPEND PYGUI_INCLUDE_DIRS ${PYSIDE_INCLUDE_DIRS} ${PYSIDE_INCLUDE_DIRS}/QtC
 list(APPEND PYGUI_INCLUDE_DIRS ${QTCORE_INCLUDE_DIRS} ${QTGUI_INCLUDE_DIRS}
     ${QTWIDGETS_INCLUDE_DIRS} ${Python3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 list(TRANSFORM PYGUI_INCLUDE_DIRS PREPEND "-I" OUTPUT_VARIABLE PYGUI_INCS)
-set(PYGUI_HEADER PySide2_Gui_Python.h)
-set(POST_SHIBOKEN ../tools/utils/runPostShiboken2.sh)
+
+if(NATRON_QT6)
+    set(PYGUI_HEADER PySide6_Gui_Python.h)
+    set(POST_SHIBOKEN ../tools/utils/runPostShiboken6.sh)
+else()
+    set(PYGUI_HEADER PySide2_Gui_Python.h)
+    set(POST_SHIBOKEN ../tools/utils/runPostShiboken2.sh)
+endif()
+
+if(NATRON_SYSTEM_QTHTTPSERVER)
+    set(QTHTTPSERVER_LIB Qt::HttpServer)
+    set(QTHTTPSERVER_DEFS __NATRON_QTHTTPSERVER__)
+else()
+    set(QTHTTPSERVER_LIB qhttpserver)
+    set(QTHTTPSERVER_INCLUDE_DIR ../libs/qhttpserver/src)
+endif()
 
 set(shiboken_args
     "--enable-parent-ctor-heuristic" "--use-isnull-as-nb_nonzero"
@@ -46,7 +60,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ../tools/utils/sourceList.py types
     OUTPUT_VARIABLE PyGui_SOURCES)
 set_property(SOURCE ${PyGui_SOURCES} PROPERTY SKIP_AUTOGEN ON)
 add_custom_command(OUTPUT ${PyGui_SOURCES}
-    COMMAND Shiboken2::shiboken2 ${shiboken_args}
+    COMMAND ${SHIBOKEN_EXE} ${shiboken_args}
     COMMAND bash ${POST_SHIBOKEN} ${PYGUI_OUT}/NatronGui natrongui
     DEPENDS ${PYGUI_HEADER} ${NatronEngine_HEADERS} ${NatronGui_HEADERS} ${POST_SHIBOKEN} typesystem_natronGui.xml
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -63,17 +77,16 @@ list(APPEND NatronGui_SOURCES
 add_library(NatronGui STATIC ${NatronGui_HEADERS} ${NatronGui_SOURCES})
 target_link_libraries(NatronGui
     PUBLIC
-        Shiboken2::libshiboken
-        PySide2::pyside2
-        Qt5::Core
-        Qt5::Concurrent
-        Qt5::Network
-        Qt5::Gui
-        Qt5::Widgets
+        ${SHIBOKEN_LIB}
+        ${PYSIDE_LIB}
+        Qt::Core
+        Qt::Concurrent
+        Qt::Network
+        Qt::Gui
+        Qt::Widgets
+        ${QTHTTPSERVER_LIB}
         Python3::Module
         NatronEngine
-    PRIVATE
-        qhttpserver
 )
 target_include_directories(NatronGui
     PRIVATE
@@ -85,7 +98,7 @@ target_include_directories(NatronGui
         ../Engine
         ../Global
         ../libs/SequenceParsing
-        ../libs/qhttpserver/src
+        ${QTHTTPSERVER_INCLUDE_DIR}
         ${CMAKE_BINARY_DIR}/Engine/Qt${QT_VERSION_MAJOR}/NatronEngine
 )
 target_compile_definitions(NatronGui
@@ -93,4 +106,5 @@ target_compile_definitions(NatronGui
         NATRON_CUSTOM_BUILD_USER_TOKEN=${BUILD_USER_NAME}
         NATRON_BUILD_NUMBER=0
         QT_NO_KEYWORDS
+        ${QTHTTPSERVER_DEFS}
 )
