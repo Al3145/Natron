@@ -35,10 +35,10 @@
 #include <string>
 #include <algorithm> // min, max
 
-#include <QtCore/QString>
-#include <QtCore/QDebug>
-#include <QtCore/QCoreApplication>
-#include <QtCore/QThread>
+#include <QString>
+#include <QDebug>
+#include <QCoreApplication>
+#include <QThread>
 
 // clang-format off
 CLANG_DIAG_OFF(mismatched-tags)
