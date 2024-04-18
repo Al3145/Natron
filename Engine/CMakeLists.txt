@@ -31,10 +31,8 @@ list(TRANSFORM PYENGINE_INCLUDE_DIRS PREPEND "-I" OUTPUT_VARIABLE PYENGINE_INCS)
 
 if(NATRON_QT6)
     set(PYENGINE_HEADER PySide6_Engine_Python.h)
-    set(POST_SHIBOKEN ../tools/utils/runPostShiboken6.sh)
 else()
     set(PYENGINE_HEADER PySide2_Engine_Python.h)
-    set(POST_SHIBOKEN ../tools/utils/runPostShiboken2.sh)
 endif()
 
 set(shiboken_args
@@ -49,8 +47,8 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ../tools/utils/sourceList.py types
     OUTPUT_VARIABLE PyEngine_SOURCES)
 set_property(SOURCE ${PyEngine_SOURCES} PROPERTY SKIP_AUTOGEN ON)
 add_custom_command(OUTPUT ${PyEngine_SOURCES}
-    COMMAND ${SHIBOKEN_EXE} ${shiboken_args}
-    COMMAND bash ${POST_SHIBOKEN} ${PYENGINE_OUT}/NatronEngine natronengine
+    COMMAND $<TARGET_FILE:${SHIBOKEN_EXE}> ${shiboken_args}
+    COMMAND ${Python3_EXECUTABLE} ../tools/utils/sourceCleanup.py typesystem_engine.xml ${PYENGINE_OUT}
     DEPENDS ${PYENGINE_HEADER} ${NatronEngine_HEADERS} ${POST_SHIBOKEN} typesystem_engine.xml
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
